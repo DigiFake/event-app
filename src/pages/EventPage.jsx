@@ -1,5 +1,5 @@
 import { useLoaderData, useNavigate } from "react-router-dom";
-import { Box, Heading, Text, Button, Stack, useToast, Image, Flex } from "@chakra-ui/react";
+import { Box, Heading, Text, Button, Stack, useToast, Image, Flex, Modal, ModalOverlay, ModalContent, ModalHeader, ModalFooter, ModalBody, ModalCloseButton, useDisclosure } from "@chakra-ui/react";
 
 export const loader = async ({ params }) => {
   const [eventResponse, categoriesResponse, usersResponse] = await Promise.all([
@@ -23,6 +23,7 @@ export function EventPage() {
   const { event, categories, users } = useLoaderData();
   const navigate = useNavigate();
   const toast = useToast();
+  const { isOpen, onOpen, onClose } = useDisclosure();
 
   const categoryNames = event.categoryIds
     ? event.categoryIds.map(
@@ -33,29 +34,27 @@ export function EventPage() {
   const user = users.find((u) => u.id === String(event.createdBy));
 
   const handleDelete = async () => {
-    if (window.confirm("Are you sure you want to delete this event?")) {
-      const response = await fetch(`http://localhost:3000/events/${event.id}`, {
-        method: "DELETE",
-      });
+    const response = await fetch(`http://localhost:3000/events/${event.id}`, {
+      method: "DELETE",
+    });
 
-      if (response.ok) {
-        toast({
-          title: "Event Deleted",
-          description: "The event has been successfully removed.",
-          status: "success",
-          duration: 3000,
-          isClosable: true,
-        });
-        navigate("/");
-      } else {
-        toast({
-          title: "Error",
-          description: "Failed to delete event.",
-          status: "error",
-          duration: 3000,
-          isClosable: true,
-        });
-      }
+    if (response.ok) {
+      toast({
+        title: "Event Deleted",
+        description: "The event has been successfully removed.",
+        status: "success",
+        duration: 3000,
+        isClosable: true,
+      });
+      navigate("/");
+    } else {
+      toast({
+        title: "Error",
+        description: "Failed to delete event.",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
     }
   };
 
@@ -79,10 +78,27 @@ export function EventPage() {
         <Button colorScheme="blue" onClick={() => navigate(`/event/${event.id}/edit`)}>
           Edit Event
         </Button>
-        <Button colorScheme="red" onClick={handleDelete}>
+        <Button colorScheme="red" onClick={onOpen}>
           Delete Event
         </Button>
       </Stack>
+
+      <Modal isOpen={isOpen} onClose={onClose}>
+        <ModalOverlay />
+        <ModalContent>
+          <ModalHeader>Confirm Deletion</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody>
+            Are you sure you want to delete this event? This action cannot be undone.
+          </ModalBody>
+          <ModalFooter>
+            <Button colorScheme="gray" mr={3} onClick={onClose}>
+              Cancel
+            </Button>
+            <Button colorScheme="red" onClick={handleDelete}>Delete</Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
     </Box>
   );
 }
