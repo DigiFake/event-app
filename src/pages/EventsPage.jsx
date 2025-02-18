@@ -1,5 +1,5 @@
 import { useLoaderData, Link } from "react-router-dom";
-import { Box, Heading, List, ListItem, Button, Input, Select, Text, VStack } from "@chakra-ui/react";
+import { Box, Heading, List, ListItem, Button, Input, Select, Text, Image } from "@chakra-ui/react";
 import { useState } from "react";
 
 export const loader = async () => {
@@ -17,21 +17,24 @@ export const loader = async () => {
     const categories = await categoriesResponse.json();
     return { events, categories };
   } catch (error) {
-    console.error("Error fetching data:", error);
-    throw error;
+    return { error: "Failed to load events." };
   }
 };
 
 export function EventsPage() {
-  const { events, categories } = useLoaderData();
+  const { events, categories, error } = useLoaderData();
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("");
 
+  if (error) return <Text color="red.500">{error}</Text>;
+
   const eventsWithCategoryNames = events.map((event) => ({
     ...event,
-    categories: event.categoryIds ? event.categoryIds.map(
-      (id) => categories.find((cat) => cat.id === String(id))?.name || "Unknown"
-    ) : ["Unknown"],
+    categories: event.categoryIds
+      ? event.categoryIds.map(
+          (id) => categories.find((cat) => cat.id === String(id))?.name || "Unknown"
+        ).join(", ")
+      : "Unknown",
   }));
 
   const uniqueCategories = [...new Set(categories.map((cat) => cat.name))];
@@ -42,64 +45,51 @@ export function EventsPage() {
   );
 
   return (
-    <Box p={6} bg="white" borderRadius="lg" boxShadow="lg" maxW="600px" mx="auto">
-      <Heading mb={4} color="primary.500" textAlign="center">List of Events</Heading>
-      
-      <VStack spacing={3} align="stretch">
-        <Input
-          placeholder="Search events..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          bg="gray.100"
-          color="gray.900"
-          _placeholder={{ color: "gray.600" }}
-        />
-        <Select
-          placeholder="Filter by category"
-          value={selectedCategory}
-          onChange={(e) => setSelectedCategory(e.target.value)}
-          bg="gray.100"
-          color="gray.900"
-        >
-          {uniqueCategories.map((cat, index) => (
-            <option key={index} value={cat}>{cat}</option>
-          ))}
-        </Select>
-        <Button 
-          as={Link} 
-          to="/event/new" 
-          bg="primary.500" 
-          color="white" 
-          fontSize="md"
-          fontWeight="bold"
-          px={4} 
-          py={2}
-          borderRadius="md"
-          w="full"
-          _hover={{ bg: "primary.600" }}
-        >
-          ➕ Add New Event
-        </Button>
-      </VStack>
+    <Box p={6} maxW="800px" mx="auto">
+      <Heading mb={4}>List of Events</Heading>
+      <Input
+        placeholder="Search..."
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        mb={4}
+      />
+      <Select
+        placeholder="Filter by category"
+        value={selectedCategory}
+        onChange={(e) => setSelectedCategory(e.target.value)}
+        mb={4}
+      >
+        {uniqueCategories.map((cat, index) => (
+          <option key={index} value={cat}>{cat}</option>
+        ))}
+      </Select>
+      <Button 
+        as={Link} 
+        to="/event/new" 
+        colorScheme="blue"
+        fontSize="lg"
+        fontWeight="bold"
+        mb={4}
+      >
+        Add New Event
+      </Button>
 
-      <List spacing={3} mt={6}>
+      <List spacing={4}>
         {filteredEvents.length > 0 ? (
           filteredEvents.map((event) => (
-            <ListItem 
-              key={event.id} 
-              p={3} 
-              bg="gray.50" 
-              borderRadius="md" 
-              boxShadow="sm" 
-              _hover={{ bg: "gray.100" }}
-            >
-              <Link to={`/event/${event.id}`} style={{ color: "#0077b6", fontWeight: "bold" }}>
-                {event.title}
+            <ListItem key={event.id} p={4} bg="gray.100" borderRadius="md" boxShadow="sm">
+              <Link to={`/event/${event.id}`} style={{ textDecoration: "none", display: "block" }}>
+                <Image src={event.image} alt={event.title} borderRadius="md" mb={2} />
+                <Heading size="md">{event.title}</Heading>
+                <Text>{event.description}</Text>
+                <Text fontSize="sm" color="gray.600">
+                  📍 {event.location} | 🕒 {event.startTime}
+                </Text>
               </Link>
             </ListItem>
           ))
         ) : (
-          <Text textAlign="center" color="gray.600">No events found.</Text>
+          <Text>No events found.</Text>
         )}
       </List>
     </Box>
